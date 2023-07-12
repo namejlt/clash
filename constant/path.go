@@ -16,8 +16,8 @@ var Path = func() *path {
 		homeDir, _ = os.Getwd()
 	}
 
-	homeDir = P.Join(homeDir, ".config", Name)
-	return &path{homeDir: homeDir, configFile: "config.yaml"}
+	homeDir = P.Join(homeDir, ".config", Name)                // 默认配置路径 xxx/.config/clash/
+	return &path{homeDir: homeDir, configFile: "config.yaml"} // 默认配置文件 config.yaml
 }()
 
 type path struct {

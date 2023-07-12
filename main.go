@@ -19,14 +19,14 @@ import (
 )
 
 var (
-	flagset            map[string]bool
-	version            bool
-	testConfig         bool
-	homeDir            string
-	configFile         string
-	externalUI         string
-	externalController string
-	secret             string
+	flagset            map[string]bool // 参数是否被设置的标记 设置true 未设置false
+	version            bool            // 是否显示系统版本号
+	testConfig         bool            // 是否仅测试配置文件合法性
+	homeDir            string          // 配置目录
+	configFile         string          // 配置文件
+	externalUI         string          // 在开启http服务后，设置是否启用ui接口
+	externalController string          // 设置http服务监听地址和端口
+	secret             string          // 设置http服务auth token
 )
 
 func init() {
@@ -46,12 +46,15 @@ func init() {
 }
 
 func main() {
-	maxprocs.Set(maxprocs.Logger(func(string, ...any) {}))
+	maxprocs.Set(maxprocs.Logger(func(string, ...any) {})) // 匹配容器cpu配额
+
+	// 显示版本号，这里编译时，可以替换常量 Version BuildTime
 	if version {
 		fmt.Printf("Clash %s %s %s with %s %s\n", C.Version, runtime.GOOS, runtime.GOARCH, runtime.Version(), C.BuildTime)
 		return
 	}
 
+	// 获取配置目录绝对路径
 	if homeDir != "" {
 		if !filepath.IsAbs(homeDir) {
 			currentDir, _ := os.Getwd()
@@ -60,6 +63,7 @@ func main() {
 		C.SetHomeDir(homeDir)
 	}
 
+	// 获取配置文件绝对路径
 	if configFile != "" {
 		if !filepath.IsAbs(configFile) {
 			currentDir, _ := os.Getwd()
@@ -67,14 +71,16 @@ func main() {
 		}
 		C.SetConfig(configFile)
 	} else {
-		configFile := filepath.Join(C.Path.HomeDir(), C.Path.Config())
-		C.SetConfig(configFile)
+		confFile := filepath.Join(C.Path.HomeDir(), C.Path.Config())
+		C.SetConfig(confFile)
 	}
 
+	// 初始化配置目录、配置文件、内存db
 	if err := config.Init(C.Path.HomeDir()); err != nil {
 		log.Fatalln("Initial configuration directory error: %s", err.Error())
 	}
 
+	// 验证配置文件合法性 yaml.Unmarshal
 	if testConfig {
 		if _, err := executor.Parse(); err != nil {
 			log.Errorln(err.Error())
@@ -85,6 +91,7 @@ func main() {
 		return
 	}
 
+	// 判断是否启动http服务
 	var options []hub.Option
 	if flagset["ext-ui"] {
 		options = append(options, hub.WithExternalUI(externalUI))
@@ -100,7 +107,10 @@ func main() {
 		log.Fatalln("Parse config error: %s", err.Error())
 	}
 
+	// 监听信号，终止
+	fmt.Println("start server!!!")
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	<-sigCh
+	fmt.Println("end server!!!")
 }

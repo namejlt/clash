@@ -28,6 +28,7 @@ func WithSecret(secret string) Option {
 
 // Parse call at the beginning of clash
 func Parse(options ...Option) error {
+	// 配置解析
 	cfg, err := executor.Parse()
 	if err != nil {
 		return err
@@ -41,10 +42,12 @@ func Parse(options ...Option) error {
 		route.SetUIPath(cfg.General.ExternalUI)
 	}
 
+	// 启动控制接口服务
 	if cfg.General.ExternalController != "" {
 		go route.Start(cfg.General.ExternalController, cfg.General.Secret)
 	}
 
+	// 根据配置启动代理逻辑
 	executor.ApplyConfig(cfg, true)
 	return nil
 }
